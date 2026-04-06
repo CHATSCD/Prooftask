@@ -305,8 +305,14 @@ select option { background: var(--surface); }
 .task-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.task-assignee {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .task-status {
