@@ -195,13 +195,28 @@ async function loadTasks() {
   $taskList.innerHTML = `<p class="empty-state">Loading…</p>`;
 
   try {
-    const { data: tasks, error } = await supabase
-      .from("tasks")
-      .select("*, assignee:profiles!assigned_to(full_name)")
-      .order("created_at", { ascending: false });
+    // Fetch tasks and profiles separately to avoid FK join issues
+    const [{ data: tasks, error: tasksErr }, { data: profiles, error: profilesErr }] =
+      await Promise.all([
+        supabase.from("tasks").select("*").order("created_at", { ascending: false }),
+        supabase.from("profiles").select("id, full_name"),
+      ]);
 
-    if (error) throw error;
-    renderTasks(tasks);
+    if (tasksErr) throw tasksErr;
+
+    // Build a quick id → name lookup map
+    const nameById = {};
+    if (profiles && !profilesErr) {
+      profiles.forEach((p) => { nameById[p.id] = p.full_name; });
+    }
+
+    // Attach assignee name to each task
+    const enriched = (tasks || []).map((t) => ({
+      ...t,
+      assigneeName: nameById[t.assigned_to] || null,
+    }));
+
+    renderTasks(enriched);
   } catch (err) {
     console.error("Tasks fetch failed:", err.message);
     $taskList.innerHTML = `<p class="empty-state">Could not load tasks: ${escapeHtml(err.message)}</p>`;
@@ -219,7 +234,7 @@ function renderTasks(tasks) {
 
   tasks.forEach((task) => {
     const isDone      = task.status === "done";
-    const assignee    = task.assignee?.full_name || "Unassigned";
+    const assignee    = task.assigneeName || "Unassigned";
     const statusClass = isDone ? "status-done" : "status-pending";
     const statusLabel = isDone ? "Done" : "Pending";
 
