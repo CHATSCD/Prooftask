@@ -1,266 +1,273 @@
-import { fetchTasks } from "./tasks.js";
-import { renderTasks } from "./import { supabase } from “../config/supabase.js”;
+// ============================================================
+//  IMPORTS
+// ============================================================
+import { supabase } from "../config/supabase.js";
 
 // ============================================================
 //  STATE
 // ============================================================
-let currentUser    = null;
+let currentUser = null;
 let currentProfile = null;
 
 // ============================================================
-//  BOOT — runs on page load
+//  INIT (on page load)
 // ============================================================
-document.addEventListener(“DOMContentLoaded”, async () => {
-const { data } = await supabase.auth.getSession();
-if (data.session) {
-await bootUser(data.session.user);
-}
+document.addEventListener("DOMContentLoaded", async () => {
+  const { data } = await supabase.auth.getSession();
+
+  if (data?.session) {
+    await bootUser(data.session.user);
+  }
 });
 
 // ============================================================
 //  LOGIN
 // ============================================================
 window.login = async function () {
-const email    = document.getElementById(“email”).value.trim().toLowerCase();
-const password = document.getElementById(“password”).value;
-const btn      = document.getElementById(“loginBtn”);
-const errBox   = document.getElementById(“loginError”);
+  const email = document.getElementById("email").value.trim().toLowerCase();
+  const password = document.getElementById("password").value;
+  const btn = document.getElementById("loginBtn");
+  const errBox = document.getElementById("loginError");
 
-errBox.style.display = “none”;
+  errBox.style.display = "none";
 
-if (!email || !password) {
-showError(“Please enter your email and password.”);
-return;
-}
+  if (!email || !password) {
+    showError("Please enter your email and password.");
+    return;
+  }
 
-btn.disabled    = true;
-btn.textContent = “Signing in…”;
+  btn.disabled = true;
+  btn.textContent = "Signing in...";
 
-const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
-btn.disabled    = false;
-btn.textContent = “Sign In”;
+  btn.disabled = false;
+  btn.textContent = "Sign In";
 
-if (error) {
-showError(error.message);
-return;
-}
+  if (error) {
+    showError(error.message);
+    return;
+  }
 
-await bootUser(data.user);
+  await bootUser(data.user);
 };
-
-function showError(msg) {
-const errBox = document.getElementById(“loginError”);
-errBox.textContent    = msg;
-errBox.style.display  = “block”;
-}
 
 // ============================================================
 //  LOGOUT
 // ============================================================
 window.logout = async function () {
-await supabase.auth.signOut();
-currentUser    = null;
-currentProfile = null;
-document.getElementById(“app”).style.display         = “none”;
-document.getElementById(“loginScreen”).style.display = “flex”;
-document.getElementById(“loginError”).style.display  = “none”;
-document.getElementById(“email”).value    = “”;
-document.getElementById(“password”).value = “”;
+  await supabase.auth.signOut();
+
+  currentUser = null;
+  currentProfile = null;
+
+  document.getElementById("app").style.display = "none";
+  document.getElementById("loginScreen").style.display = "flex";
+
+  document.getElementById("email").value = "";
+  document.getElementById("password").value = "";
 };
 
 // ============================================================
-//  BOOT USER — called after login or session restore
+//  ERROR DISPLAY
+// ============================================================
+function showError(msg) {
+  const errBox = document.getElementById("loginError");
+  errBox.textContent = msg;
+  errBox.style.display = "block";
+}
+
+// ============================================================
+//  BOOT USER (after login)
 // ============================================================
 async function bootUser(user) {
-currentUser = user;
+  currentUser = user;
 
-// Fetch profile (role) from public.profiles table
-const { data: profile, error } = await supabase
-.from(“profiles”)
-.select(“role, full_name”)
-.eq(“id”, user.id)
-.single();
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("role, full_name")
+    .eq("id", user.id)
+    .single();
 
-if (error) {
-console.error(“Profile fetch error:”, error.message);
-showError(“Could not load your profile. Contact your admin.”);
-return;
-}
+  if (error) {
+    console.error("Profile error:", error.message);
+    showError("Failed to load profile.");
+    return;
+  }
 
-currentProfile = profile;
+  currentProfile = profile;
 
-// Show app
-document.getElementById(“loginScreen”).style.display = “none”;
-document.getElementById(“app”).style.display         = “block”;
-document.getElementById(“userEmail”).textContent     =
-profile.full_name || user.email;
+  // UI switch
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  document.getElementById("userEmail").textContent =
+    profile.full_name || user.email;
 
-// Admin panel
-const adminPanel = document.getElementById(“adminPanel”);
-if (profile.role === “admin”) {
-adminPanel.style.display = “block”;
-await loadAssignees();
-} else {
-adminPanel.style.display = “none”;
-}
+  // Admin panel
+  const adminPanel = document.getElementById("adminPanel");
+  if (profile.role === "admin") {
+    adminPanel.style.display = "block";
+    await loadAssignees();
+  } else {
+    adminPanel.style.display = "none";
+  }
 
-await loadTasks();
+  await loadTasks();
 }
 
 // ============================================================
-//  TASKS — load
+//  LOAD TASKS
 // ============================================================
-window.loadTasks = async function () {
-await loadTasks();
-};
-
 async function loadTasks() {
-const container = document.getElementById(“taskList”);
-container.innerHTML = `<p class="empty-state">Loading…</p>`;
+  const container = document.getElementById("taskList");
+  container.innerHTML = `<p class="empty-state">Loading...</p>`;
 
-const { data: tasks, error } = await supabase
-.from(“tasks”)
-.select(”*, profiles(full_name)”)
-.order(“created_at”, { ascending: false });
+  const { data: tasks, error } = await supabase
+    .from("tasks")
+    .select("*, profiles(full_name)")
+    .order("created_at", { ascending: false });
 
-if (error) {
-console.error(“Tasks fetch error:”, error.message);
-container.innerHTML = `<p class="empty-state">Failed to load tasks.</p>`;
-return;
+  if (error) {
+    console.error("Tasks error:", error.message);
+    container.innerHTML = `<p class="empty-state">Failed to load tasks</p>`;
+    return;
+  }
+
+  renderTasks(tasks);
 }
 
-renderTasks(tasks);
-}
+// expose if needed
+window.loadTasks = loadTasks;
 
 // ============================================================
-//  TASKS — render
+//  RENDER TASKS
 // ============================================================
 function renderTasks(tasks) {
-const container = document.getElementById(“taskList”);
+  const container = document.getElementById("taskList");
 
-if (!tasks || tasks.length === 0) {
-container.innerHTML = `<p class="empty-state">No tasks yet.</p>`;
-return;
-}
+  if (!tasks || tasks.length === 0) {
+    container.innerHTML = `<p class="empty-state">No tasks yet</p>`;
+    return;
+  }
 
-container.innerHTML = “”;
+  container.innerHTML = "";
 
-tasks.forEach(task => {
-const isDone    = task.status === “done”;
-const assignee  = task.profiles?.full_name || “Unassigned”;
-const statusMap = {
-pending:     “status-pending”,
-in_progress: “status-progress”,
-done:        “status-done”,
-};
-const statusClass = statusMap[task.status] || “status-pending”;
-const statusLabel = (task.status || “pending”).replace(”_”, “ “);
+  tasks.forEach((task) => {
+    const isDone = task.status === "done";
+    const assignee = task.profiles?.full_name || "Unassigned";
 
-```
-const card = document.createElement("div");
-card.className = "task-card";
-card.innerHTML = `
-  <div class="task-header">
-    <span class="task-title ${isDone ? "done" : ""}">${escHtml(task.title)}</span>
-    ${!isDone ? `<button class="btn-done" onclick="markDone('${task.id}')">Mark Done</button>` : ""}
-  </div>
-  ${task.notes ? `<p class="task-notes">${escHtml(task.notes)}</p>` : ""}
-  <div class="task-meta">
-    <span class="task-status ${statusClass}">${statusLabel}</span>
-    <span style="color:var(--muted);font-size:12px;">→ ${escHtml(assignee)}</span>
-  </div>
-`;
-container.appendChild(card);
-```
+    const card = document.createElement("div");
+    card.className = "task-card";
 
-});
+    card.innerHTML = `
+      <div class="task-header">
+        <span class="task-title ${isDone ? "done" : ""}">
+          ${escapeHtml(task.title)}
+        </span>
+        ${
+          !isDone
+            ? `<button onclick="markDone('${task.id}')">Done</button>`
+            : ""
+        }
+      </div>
+      ${
+        task.notes
+          ? `<p class="task-notes">${escapeHtml(task.notes)}</p>`
+          : ""
+      }
+      <div class="task-meta">
+        <span>${task.status}</span>
+        <span>→ ${escapeHtml(assignee)}</span>
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
 }
 
 // ============================================================
-//  TASKS — create (admin only)
+//  CREATE TASK (ADMIN)
 // ============================================================
 window.createTask = async function () {
-const title    = document.getElementById(“taskTitle”).value.trim();
-const notes    = document.getElementById(“taskNotes”).value.trim();
-const assignee = document.getElementById(“taskAssignee”).value || null;
+  const title = document.getElementById("taskTitle").value.trim();
+  const notes = document.getElementById("taskNotes").value.trim();
+  const assignee = document.getElementById("taskAssignee").value || null;
 
-if (!title) {
-alert(“Task title is required.”);
-return;
-}
+  if (!title) {
+    alert("Task title required");
+    return;
+  }
 
-const { error } = await supabase.from(“tasks”).insert({
-title,
-notes:       notes || null,
-assigned_to: assignee,
-status:      “pending”,
-created_by:  currentUser.id,
-});
+  const { error } = await supabase.from("tasks").insert({
+    title,
+    notes: notes || null,
+    assigned_to: assignee,
+    status: "pending",
+    created_by: currentUser.id,
+  });
 
-if (error) {
-console.error(“Create task error:”, error.message);
-alert(“Failed to create task: “ + error.message);
-return;
-}
+  if (error) {
+    alert("Error: " + error.message);
+    return;
+  }
 
-document.getElementById(“taskTitle”).value    = “”;
-document.getElementById(“taskNotes”).value    = “”;
-document.getElementById(“taskAssignee”).value = “”;
+  document.getElementById("taskTitle").value = "";
+  document.getElementById("taskNotes").value = "";
+  document.getElementById("taskAssignee").value = "";
 
-await loadTasks();
+  await loadTasks();
 };
 
 // ============================================================
-//  TASKS — mark done
+//  MARK DONE
 // ============================================================
 window.markDone = async function (taskId) {
-const { error } = await supabase
-.from(“tasks”)
-.update({ status: “done” })
-.eq(“id”, taskId);
+  const { error } = await supabase
+    .from("tasks")
+    .update({ status: "done" })
+    .eq("id", taskId);
 
-if (error) {
-alert(“Failed to update task.”);
-return;
-}
+  if (error) {
+    alert("Failed to update task");
+    return;
+  }
 
-await loadTasks();
+  await loadTasks();
 };
 
 // ============================================================
-//  ADMIN — load assignee list
+//  LOAD ASSIGNEES (ADMIN)
 // ============================================================
 async function loadAssignees() {
-const { data: users, error } = await supabase
-.from(“profiles”)
-.select(“id, full_name”)
-.order(“full_name”);
+  const { data: users, error } = await supabase
+    .from("profiles")
+    .select("id, full_name")
+    .order("full_name");
 
-if (error || !users) return;
+  if (error) return;
 
-const select = document.getElementById(“taskAssignee”);
-select.innerHTML = `<option value="">Assign to user (optional)</option>`;
-users.forEach(u => {
-const opt   = document.createElement(“option”);
-opt.value   = u.id;
-opt.textContent = u.full_name || u.id;
-select.appendChild(opt);
-});
+  const select = document.getElementById("taskAssignee");
+  select.innerHTML = `<option value="">Assign to user</option>`;
+
+  users.forEach((u) => {
+    const opt = document.createElement("option");
+    opt.value = u.id;
+    opt.textContent = u.full_name || u.id;
+    select.appendChild(opt);
+  });
 }
 
 // ============================================================
-//  UTILS
+//  UTIL
 // ============================================================
-function escHtml(str) {
-if (!str) return “”;
-return str
-.replace(/&/g, “&”)
-.replace(/</g, “<”)
-.replace(/>/g, “>”)
-.replace(/”/g, “"”);
+function escapeHtml(str) {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
-window.loadTasks = async function () {
-  const tasks = await fetchTasks();
-  renderTasks(tasks);
-};
