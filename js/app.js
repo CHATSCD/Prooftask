@@ -1,18 +1,25 @@
+// ── top-level catch: if the module itself fails to load, show it ──────────
+window.addEventListener("error", (e) => {
+  document.getElementById("loginError").textContent =
+    "App failed to load: " + (e.message || e.type);
+  document.getElementById("loginError").style.display = "block";
+});
+
 import { supabase } from "../config/supabase.js";
 
-// ── State ────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────
 let currentUser    = null;
 let currentProfile = null;
 
-// ── DOM refs (set once DOMContentLoaded fires) ───────────────
+// ── DOM refs ──────────────────────────────────────────────────────────────
 let $loginScreen, $app, $loginError, $loginBtn, $logoutBtn;
 let $email, $password, $userEmail;
 let $adminPanel, $taskTitle, $taskNotes, $taskAssignee, $createTaskBtn;
 let $taskList;
 
-// ── Init ─────────────────────────────────────────────────────
+// ── Init ──────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", async () => {
-  // Cache DOM references
+  // Cache DOM
   $loginScreen   = document.getElementById("loginScreen");
   $app           = document.getElementById("app");
   $loginError    = document.getElementById("loginError");
@@ -28,7 +35,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   $createTaskBtn = document.getElementById("createTaskBtn");
   $taskList      = document.getElementById("taskList");
 
-  // Wire up all buttons here — no inline onclick anywhere
+  // Wire all events here — zero inline onclick attributes
   $loginBtn.addEventListener("click", handleLogin);
   $logoutBtn.addEventListener("click", handleLogout);
   $createTaskBtn.addEventListener("click", handleCreateTask);
@@ -37,16 +44,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Restore existing session
   try {
-    const { data } = await supabase.auth.getSession();
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
     if (data?.session) {
       await bootUser(data.session.user);
     }
   } catch (err) {
-    console.error("Session check failed:", err);
+    // Session check failing doesn't block login — just log it
+    console.warn("Session restore failed:", err.message);
   }
 });
 
-// ── Login ────────────────────────────────────────────────────
+// ── Login ─────────────────────────────────────────────────────────────────
 async function handleLogin() {
   const email    = $email.value.trim().toLowerCase();
   const password = $password.value;
@@ -60,48 +69,89 @@ async function handleLogin() {
 
   setLoginLoading(true);
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  let data, error;
+
+  try {
+    ({ data, error } = await supabase.auth.signInWithPassword({ email, password }));
+  } catch (err) {
+    setLoginLoading(false);
+    showError("Network error — could not reach the server. Check your connection.");
+    console.error("signInWithPassword threw:", err);
+    return;
+  }
 
   setLoginLoading(false);
 
   if (error) {
-    showError(error.message);
+    // Translate common Supabase error messages into plain English
+    const msg = friendlyAuthError(error.message);
+    showError(msg);
     return;
   }
 
   await bootUser(data.user);
 }
 
+function friendlyAuthError(raw) {
+  if (!raw) return "Login failed. Please try again.";
+  const r = raw.toLowerCase();
+  if (r.includes("invalid login") || r.includes("invalid credentials"))
+    return "Incorrect email or password.";
+  if (r.includes("email not confirmed"))
+    return "Please confirm your email address before signing in.";
+  if (r.includes("too many requests"))
+    return "Too many attempts. Please wait a moment and try again.";
+  if (r.includes("network") || r.includes("fetch"))
+    return "Network error — check your internet connection.";
+  return raw; // fall back to raw message
+}
+
 function setLoginLoading(loading) {
-  $loginBtn.disabled   = loading;
+  $loginBtn.disabled    = loading;
   $loginBtn.textContent = loading ? "Signing in…" : "Sign In";
 }
 
-// ── Logout ───────────────────────────────────────────────────
+// ── Logout ────────────────────────────────────────────────────────────────
 async function handleLogout() {
-  await supabase.auth.signOut();
+  await supabase.auth.signOut().catch(() => {});
   currentUser    = null;
   currentProfile = null;
   showLoginScreen();
 }
 
-// ── Boot user after successful auth ──────────────────────────
+// ── Boot user ─────────────────────────────────────────────────────────────
 async function bootUser(user) {
   currentUser = user;
 
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("role, full_name")
-    .eq("id", user.id)
-    .single();
+  // Try to fetch profile — but don't block login if table doesn't exist yet
+  let profile = { role: "user", full_name: null };
 
-  if (error) {
-    console.error("Profile fetch failed:", error.message);
-    showError("Could not load your profile. Please try again.");
-    return;
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("role, full_name")
+      .eq("id", user.id)
+      .single();
+
+    if (error) {
+      // PGRST116 = no rows found; 42P01 = table doesn't exist
+      if (error.code === "PGRST116") {
+        console.warn("No profile row found for this user — using defaults.");
+      } else if (error.message?.includes("does not exist")) {
+        console.warn("profiles table not found — using defaults.");
+      } else {
+        console.error("Profile fetch error:", error.code, error.message);
+      }
+      // Proceed with defaults — do NOT block login
+    } else {
+      profile = data;
+    }
+  } catch (err) {
+    console.warn("Profile fetch threw:", err.message);
   }
 
   currentProfile = profile;
+
   showAppScreen(profile.full_name || user.email);
 
   if (profile.role === "admin") {
@@ -114,7 +164,7 @@ async function bootUser(user) {
   await loadTasks();
 }
 
-// ── Screen helpers ───────────────────────────────────────────
+// ── Screen helpers ────────────────────────────────────────────────────────
 function showLoginScreen() {
   $app.style.display         = "none";
   $loginScreen.style.display = "flex";
@@ -129,36 +179,36 @@ function showAppScreen(displayName) {
   $userEmail.textContent     = displayName;
 }
 
-// ── Error helpers ────────────────────────────────────────────
+// ── Error helpers ─────────────────────────────────────────────────────────
 function showError(msg) {
-  $loginError.textContent    = msg;
-  $loginError.style.display  = "block";
+  $loginError.textContent   = msg;
+  $loginError.style.display = "block";
 }
 
 function hideError() {
-  $loginError.style.display  = "none";
-  $loginError.textContent    = "";
+  $loginError.style.display = "none";
+  $loginError.textContent   = "";
 }
 
-// ── Load tasks ───────────────────────────────────────────────
+// ── Load tasks ────────────────────────────────────────────────────────────
 async function loadTasks() {
   $taskList.innerHTML = `<p class="empty-state">Loading…</p>`;
 
-  const { data: tasks, error } = await supabase
-    .from("tasks")
-    .select("*, profiles(full_name)")
-    .order("created_at", { ascending: false });
+  try {
+    const { data: tasks, error } = await supabase
+      .from("tasks")
+      .select("*, profiles(full_name)")
+      .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("Tasks fetch failed:", error.message);
-    $taskList.innerHTML = `<p class="empty-state">Failed to load tasks. Try refreshing.</p>`;
-    return;
+    if (error) throw error;
+    renderTasks(tasks);
+  } catch (err) {
+    console.error("Tasks fetch failed:", err.message);
+    $taskList.innerHTML = `<p class="empty-state">Could not load tasks: ${escapeHtml(err.message)}</p>`;
   }
-
-  renderTasks(tasks);
 }
 
-// ── Render tasks ─────────────────────────────────────────────
+// ── Render tasks ──────────────────────────────────────────────────────────
 function renderTasks(tasks) {
   if (!tasks || tasks.length === 0) {
     $taskList.innerHTML = `<p class="empty-state">No tasks yet.</p>`;
@@ -168,14 +218,13 @@ function renderTasks(tasks) {
   $taskList.innerHTML = "";
 
   tasks.forEach((task) => {
-    const isDone       = task.status === "done";
-    const assignee     = task.profiles?.full_name || "Unassigned";
-    const statusClass  = isDone ? "status-done" : "status-pending";
-    const statusLabel  = isDone ? "Done" : "Pending";
+    const isDone      = task.status === "done";
+    const assignee    = task.profiles?.full_name || "Unassigned";
+    const statusClass = isDone ? "status-done" : "status-pending";
+    const statusLabel = isDone ? "Done" : "Pending";
 
     const card = document.createElement("div");
     card.className = "task-card";
-
     card.innerHTML = `
       <div class="task-header">
         <span class="task-title${isDone ? " done" : ""}">${escapeHtml(task.title)}</span>
@@ -188,7 +237,6 @@ function renderTasks(tasks) {
       </div>
     `;
 
-    // Wire the "Mark Done" button with addEventListener (no inline onclick)
     if (!isDone) {
       card.querySelector(".btn-done").addEventListener("click", () => handleMarkDone(task.id));
     }
@@ -197,7 +245,7 @@ function renderTasks(tasks) {
   });
 }
 
-// ── Create task (admin) ──────────────────────────────────────
+// ── Create task ───────────────────────────────────────────────────────────
 async function handleCreateTask() {
   const title    = $taskTitle.value.trim();
   const notes    = $taskNotes.value.trim();
@@ -208,66 +256,70 @@ async function handleCreateTask() {
     return;
   }
 
-  $createTaskBtn.disabled   = true;
+  $createTaskBtn.disabled    = true;
   $createTaskBtn.textContent = "Creating…";
 
-  const { error } = await supabase.from("tasks").insert({
-    title,
-    notes:       notes || null,
-    assigned_to: assignee,
-    status:      "pending",
-    created_by:  currentUser.id,
-  });
+  try {
+    const { error } = await supabase.from("tasks").insert({
+      title,
+      notes:       notes || null,
+      assigned_to: assignee,
+      status:      "pending",
+      created_by:  currentUser.id,
+    });
 
-  $createTaskBtn.disabled   = false;
+    if (error) throw error;
+
+    $taskTitle.value    = "";
+    $taskNotes.value    = "";
+    $taskAssignee.value = "";
+    await loadTasks();
+  } catch (err) {
+    alert("Error creating task: " + err.message);
+  }
+
+  $createTaskBtn.disabled    = false;
   $createTaskBtn.textContent = "+ Create Task";
-
-  if (error) {
-    alert("Error creating task: " + error.message);
-    return;
-  }
-
-  $taskTitle.value    = "";
-  $taskNotes.value    = "";
-  $taskAssignee.value = "";
-
-  await loadTasks();
 }
 
-// ── Mark task done ───────────────────────────────────────────
+// ── Mark done ─────────────────────────────────────────────────────────────
 async function handleMarkDone(taskId) {
-  const { error } = await supabase
-    .from("tasks")
-    .update({ status: "done" })
-    .eq("id", taskId);
+  try {
+    const { error } = await supabase
+      .from("tasks")
+      .update({ status: "done" })
+      .eq("id", taskId);
 
-  if (error) {
-    alert("Failed to update task: " + error.message);
-    return;
+    if (error) throw error;
+    await loadTasks();
+  } catch (err) {
+    alert("Failed to update task: " + err.message);
   }
-
-  await loadTasks();
 }
 
-// ── Load assignee dropdown (admin) ───────────────────────────
+// ── Load assignees ────────────────────────────────────────────────────────
 async function loadAssignees() {
-  const { data: users, error } = await supabase
-    .from("profiles")
-    .select("id, full_name")
-    .order("full_name");
+  try {
+    const { data: users, error } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .order("full_name");
 
-  if (error) return;
+    if (error) throw error;
 
-  $taskAssignee.innerHTML = `<option value="">Assign to user (optional)</option>`;
-  users.forEach((u) => {
-    const opt       = document.createElement("option");
-    opt.value       = u.id;
-    opt.textContent = u.full_name || u.id;
-    $taskAssignee.appendChild(opt);
-  });
+    $taskAssignee.innerHTML = `<option value="">Assign to user (optional)</option>`;
+    users.forEach((u) => {
+      const opt       = document.createElement("option");
+      opt.value       = u.id;
+      opt.textContent = u.full_name || u.id;
+      $taskAssignee.appendChild(opt);
+    });
+  } catch (err) {
+    console.warn("Could not load assignees:", err.message);
+  }
 }
 
-// ── XSS helper ───────────────────────────────────────────────
+// ── XSS helper ────────────────────────────────────────────────────────────
 function escapeHtml(str) {
   if (!str) return "";
   return str
