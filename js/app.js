@@ -197,7 +197,7 @@ async function loadTasks() {
   try {
     const { data: tasks, error } = await supabase
       .from("tasks")
-      .select("*, profiles(full_name)")
+      .select("*, assignee:profiles!assigned_to(full_name)")
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -219,7 +219,7 @@ function renderTasks(tasks) {
 
   tasks.forEach((task) => {
     const isDone      = task.status === "done";
-    const assignee    = task.profiles?.full_name || "Unassigned";
+    const assignee    = task.assignee?.full_name || "Unassigned";
     const statusClass = isDone ? "status-done" : "status-pending";
     const statusLabel = isDone ? "Done" : "Pending";
 
