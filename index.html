@@ -1,95 +1,88 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ProofTask App</title>
-
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>ProofTask</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/styles.css" />
 </head>
+<body>
 
-<body class="bg-gray-100 font-sans">
+  <!-- LOGIN SCREEN -->
 
-  <!-- ============================
-       LOGIN SCREEN
-  ============================= -->
-  <div id="loginScreen" class="flex items-center justify-center h-screen">
-    <div class="bg-white p-6 rounded shadow w-80">
-      <h2 class="text-xl font-bold mb-4 text-center">Login</h2>
+  <div id="loginScreen">
+    <div class="login-card">
+      <div class="login-logo">
+        <span class="logo-box">PT</span>
+        <h1>ProofTask</h1>
+      </div>
+      <p class="login-sub">Sign in to your workspace</p>
 
-      <input 
-        id="email" 
-        type="email" 
-        placeholder="Email"
-        class="w-full mb-3 p-2 border rounded"
-      />
+```
+  <div id="loginError" class="error-msg" style="display:none;"></div>
 
-      <input 
-        id="password" 
-        type="password" 
-        placeholder="Password"
-        class="w-full mb-4 p-2 border rounded"
-      />
-
-      <button 
-        onclick="login()" 
-        class="w-full bg-blue-600 text-white p-2 rounded"
-      >
-        Login
-      </button>
-    </div>
-  </div>
-
-  <!-- ============================
-       MAIN APP
-  ============================= -->
-  <div id="app" style="display:none;" class="p-4">
-
-    <div class="flex justify-between items-center mb-4">
-      <h1 class="text-2xl font-bold">ProofTask</h1>
-      <button onclick="logout()" class="bg-red-500 text-white px-3 py-1 rounded">
-        Logout
-      </button>
-    </div>
-
-    <!-- ============================
-         ADMIN PANEL
-    ============================= -->
-    <div id="adminPanel" style="display:none;" class="bg-white p-4 rounded shadow mb-4">
-      <h2 class="text-lg font-bold mb-2">Admin Panel</h2>
-
-      <input 
-        id="taskTitle"
-        placeholder="Task title"
-        class="border p-2 w-full mb-2 rounded"
-      />
-
-      <textarea 
-        id="taskNotes"
-        placeholder="Task notes"
-        class="border p-2 w-full mb-2 rounded"
-      ></textarea>
-
-      <button 
-        onclick="createTask()" 
-        class="bg-green-600 text-white px-3 py-2 rounded"
-      >
-        Create Task
-      </button>
-    </div>
-
-    <!-- ============================
-         TASK LIST
-    ============================= -->
-    <div id="taskList" class="space-y-3">
-      <!-- Tasks will load here -->
-    </div>
+  <input id="email" type="email" placeholder="Email address" autocomplete="email" />
+  <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
+  <button id="loginBtn" onclick="login()">Sign In</button>
+</div>
+```
 
   </div>
 
-  <!-- ============================
-       APP SCRIPT
-  ============================= -->
+  <!-- MAIN APP -->
+
+  <div id="app" style="display:none;">
+
+```
+<nav class="navbar">
+  <div class="nav-brand">
+    <span class="logo-box small">PT</span>
+    ProofTask
+  </div>
+  <div class="nav-right">
+    <span id="userEmail" class="user-email"></span>
+    <button class="btn-logout" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+
+<main class="main-content">
+
+  <!-- ADMIN PANEL -->
+  <div id="adminPanel" style="display:none;" class="panel admin-panel">
+    <h2 class="panel-title">
+      <span class="panel-badge">Admin</span>
+      Create Task
+    </h2>
+    <div class="form-row">
+      <input id="taskTitle" type="text" placeholder="Task title" />
+    </div>
+    <div class="form-row">
+      <textarea id="taskNotes" placeholder="Task notes (optional)" rows="3"></textarea>
+    </div>
+    <div class="form-row">
+      <select id="taskAssignee">
+        <option value="">Assign to user (optional)</option>
+      </select>
+    </div>
+    <button class="btn-create" onclick="createTask()">+ Create Task</button>
+  </div>
+
+  <!-- TASK LIST -->
+  <div class="panel">
+    <h2 class="panel-title">Tasks</h2>
+    <div id="taskList">
+      <p class="empty-state">Loading tasks...</p>
+    </div>
+  </div>
+
+</main>
+```
+
+  </div>
+
   <script type="module" src="./js/app.js"></script>
 
 </body>
