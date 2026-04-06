@@ -13,8 +13,15 @@ let currentProfile = null;
 //  INIT (on page load)
 // ============================================================
 document.addEventListener("DOMContentLoaded", async () => {
-  const { data } = await supabase.auth.getSession();
+  // Allow Enter key to submit login
+  document.getElementById("password").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") login();
+  });
+  document.getElementById("email").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") login();
+  });
 
+  const { data } = await supabase.auth.getSession();
   if (data?.session) {
     await bootUser(data.session.user);
   }
@@ -94,13 +101,13 @@ async function bootUser(user) {
 
   if (error) {
     console.error("Profile error:", error.message);
-    showError("Failed to load profile.");
+    showError("Failed to load profile. Please try again.");
     return;
   }
 
   currentProfile = profile;
 
-  // UI switch
+  // Switch to main app
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("app").style.display = "block";
   document.getElementById("userEmail").textContent =
@@ -132,14 +139,13 @@ async function loadTasks() {
 
   if (error) {
     console.error("Tasks error:", error.message);
-    container.innerHTML = `<p class="empty-state">Failed to load tasks</p>`;
+    container.innerHTML = `<p class="empty-state">Failed to load tasks.</p>`;
     return;
   }
 
   renderTasks(tasks);
 }
 
-// expose if needed
 window.loadTasks = loadTasks;
 
 // ============================================================
@@ -149,7 +155,7 @@ function renderTasks(tasks) {
   const container = document.getElementById("taskList");
 
   if (!tasks || tasks.length === 0) {
-    container.innerHTML = `<p class="empty-state">No tasks yet</p>`;
+    container.innerHTML = `<p class="empty-state">No tasks yet.</p>`;
     return;
   }
 
@@ -158,18 +164,20 @@ function renderTasks(tasks) {
   tasks.forEach((task) => {
     const isDone = task.status === "done";
     const assignee = task.profiles?.full_name || "Unassigned";
+    const statusClass = isDone ? "status-done" : "status-pending";
+    const statusLabel = isDone ? "Done" : "Pending";
 
     const card = document.createElement("div");
     card.className = "task-card";
 
     card.innerHTML = `
       <div class="task-header">
-        <span class="task-title ${isDone ? "done" : ""}">
+        <span class="task-title${isDone ? " done" : ""}">
           ${escapeHtml(task.title)}
         </span>
         ${
           !isDone
-            ? `<button onclick="markDone('${task.id}')">Done</button>`
+            ? `<button class="btn-done" onclick="markDone('${task.id}')">Mark Done</button>`
             : ""
         }
       </div>
@@ -179,8 +187,8 @@ function renderTasks(tasks) {
           : ""
       }
       <div class="task-meta">
-        <span>${task.status}</span>
-        <span>→ ${escapeHtml(assignee)}</span>
+        <span class="task-status ${statusClass}">${statusLabel}</span>
+        <span class="task-assignee">→ ${escapeHtml(assignee)}</span>
       </div>
     `;
 
@@ -195,11 +203,15 @@ window.createTask = async function () {
   const title = document.getElementById("taskTitle").value.trim();
   const notes = document.getElementById("taskNotes").value.trim();
   const assignee = document.getElementById("taskAssignee").value || null;
+  const btn = document.querySelector(".btn-create");
 
   if (!title) {
-    alert("Task title required");
+    alert("Task title is required.");
     return;
   }
+
+  btn.disabled = true;
+  btn.textContent = "Creating...";
 
   const { error } = await supabase.from("tasks").insert({
     title,
@@ -209,8 +221,11 @@ window.createTask = async function () {
     created_by: currentUser.id,
   });
 
+  btn.disabled = false;
+  btn.textContent = "+ Create Task";
+
   if (error) {
-    alert("Error: " + error.message);
+    alert("Error creating task: " + error.message);
     return;
   }
 
@@ -231,7 +246,7 @@ window.markDone = async function (taskId) {
     .eq("id", taskId);
 
   if (error) {
-    alert("Failed to update task");
+    alert("Failed to update task: " + error.message);
     return;
   }
 
@@ -250,7 +265,7 @@ async function loadAssignees() {
   if (error) return;
 
   const select = document.getElementById("taskAssignee");
-  select.innerHTML = `<option value="">Assign to user</option>`;
+  select.innerHTML = `<option value="">Assign to user (optional)</option>`;
 
   users.forEach((u) => {
     const opt = document.createElement("option");

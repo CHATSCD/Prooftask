@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -12,7 +11,6 @@
 <body>
 
   <!-- LOGIN SCREEN -->
-
   <div id="loginScreen">
     <div class="login-card">
       <div class="login-logo">
@@ -21,65 +19,59 @@
       </div>
       <p class="login-sub">Sign in to your workspace</p>
 
-```
-  <div id="loginError" class="error-msg" style="display:none;"></div>
+      <div id="loginError" class="error-msg" style="display:none;"></div>
 
-  <input id="email" type="email" placeholder="Email address" autocomplete="email" />
-  <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
-  <button id="loginBtn" onclick="login()">Sign In</button>
-</div>
-```
-
+      <input id="email" type="email" placeholder="Email address" autocomplete="email" />
+      <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
+      <button id="loginBtn" onclick="login()">Sign In</button>
+    </div>
   </div>
 
   <!-- MAIN APP -->
-
   <div id="app" style="display:none;">
 
-```
-<nav class="navbar">
-  <div class="nav-brand">
-    <span class="logo-box small">PT</span>
-    ProofTask
-  </div>
-  <div class="nav-right">
-    <span id="userEmail" class="user-email"></span>
-    <button class="btn-logout" onclick="logout()">Sign Out</button>
-  </div>
-</nav>
+    <nav class="navbar">
+      <div class="nav-brand">
+        <span class="logo-box small">PT</span>
+        ProofTask
+      </div>
+      <div class="nav-right">
+        <span id="userEmail" class="user-email"></span>
+        <button class="btn-logout" onclick="logout()">Sign Out</button>
+      </div>
+    </nav>
 
-<main class="main-content">
+    <main class="main-content">
 
-  <!-- ADMIN PANEL -->
-  <div id="adminPanel" style="display:none;" class="panel admin-panel">
-    <h2 class="panel-title">
-      <span class="panel-badge">Admin</span>
-      Create Task
-    </h2>
-    <div class="form-row">
-      <input id="taskTitle" type="text" placeholder="Task title" />
-    </div>
-    <div class="form-row">
-      <textarea id="taskNotes" placeholder="Task notes (optional)" rows="3"></textarea>
-    </div>
-    <div class="form-row">
-      <select id="taskAssignee">
-        <option value="">Assign to user (optional)</option>
-      </select>
-    </div>
-    <button class="btn-create" onclick="createTask()">+ Create Task</button>
-  </div>
+      <!-- ADMIN PANEL -->
+      <div id="adminPanel" style="display:none;" class="panel admin-panel">
+        <h2 class="panel-title">
+          <span class="panel-badge">Admin</span>
+          Create Task
+        </h2>
+        <div class="form-row">
+          <input id="taskTitle" type="text" placeholder="Task title" />
+        </div>
+        <div class="form-row">
+          <textarea id="taskNotes" placeholder="Task notes (optional)" rows="3"></textarea>
+        </div>
+        <div class="form-row">
+          <select id="taskAssignee">
+            <option value="">Assign to user (optional)</option>
+          </select>
+        </div>
+        <button class="btn-create" onclick="createTask()">+ Create Task</button>
+      </div>
 
-  <!-- TASK LIST -->
-  <div class="panel">
-    <h2 class="panel-title">Tasks</h2>
-    <div id="taskList">
-      <p class="empty-state">Loading tasks...</p>
-    </div>
-  </div>
+      <!-- TASK LIST -->
+      <div class="panel">
+        <h2 class="panel-title">Tasks</h2>
+        <div id="taskList">
+          <p class="empty-state">Loading tasks...</p>
+        </div>
+      </div>
 
-</main>
-```
+    </main>
 
   </div>
 
