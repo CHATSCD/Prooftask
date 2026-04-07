@@ -9,43 +9,34 @@
     href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="./css/styles.css" />
+  <link rel="stylesheet" href="./css/styles.css?v=10" />
 </head>
 <body>
 
   <!-- ── LOGIN / REGISTER SCREEN ───────────────────────────── -->
   <div id="loginScreen">
     <div class="login-card">
-
       <div class="login-logo">
         <span class="logo-box">PT</span>
         <h1>ProofTask</h1>
       </div>
-
-      <!-- Tab switcher -->
       <div class="auth-tabs">
         <button id="tabSignIn" class="auth-tab active">Sign In</button>
         <button id="tabSignUp" class="auth-tab">Register</button>
       </div>
-
-      <div id="loginError" class="error-msg" style="display:none;"></div>
+      <div id="loginError"   class="error-msg"   style="display:none;"></div>
       <div id="loginSuccess" class="success-msg" style="display:none;"></div>
-
-      <!-- SIGN IN FORM -->
       <div id="formSignIn">
-        <input id="email"    type="email"    placeholder="Email address" autocomplete="email" />
-        <input id="password" type="password" placeholder="Password"      autocomplete="current-password" />
+        <input id="email"    type="email"    placeholder="Email address"    autocomplete="email" />
+        <input id="password" type="password" placeholder="Password"         autocomplete="current-password" />
         <button id="loginBtn">Sign In</button>
       </div>
-
-      <!-- REGISTER FORM -->
       <div id="formSignUp" style="display:none;">
         <input id="regName"     type="text"     placeholder="Full name" />
         <input id="regEmail"    type="email"    placeholder="Email address" autocomplete="email" />
         <input id="regPassword" type="password" placeholder="Password (min 6 chars)" />
         <button id="registerBtn">Create Account</button>
       </div>
-
     </div>
   </div>
 
@@ -91,8 +82,6 @@
           <span class="panel-badge">Admin</span>
           User Management
         </h2>
-
-        <!-- Add user directly -->
         <div class="add-user-form">
           <h3 class="add-user-title">Add New Worker</h3>
           <div class="add-user-fields">
@@ -107,26 +96,65 @@
           <button id="addUserBtn" class="btn-create">+ Add Worker</button>
           <div id="addUserMsg" class="add-user-msg" style="display:none;"></div>
         </div>
-
         <div class="divider"></div>
-
         <h3 class="add-user-title">Current Workers</h3>
-        <div id="userList">
-          <p class="empty-state">Loading users…</p>
-        </div>
+        <div id="userList"><p class="empty-state">Loading users…</p></div>
       </div>
 
       <!-- TASK LIST -->
       <div class="panel">
         <h2 class="panel-title">Tasks</h2>
-        <div id="taskList">
-          <p class="empty-state">Loading tasks…</p>
-        </div>
+        <div id="taskList"><p class="empty-state">Loading tasks…</p></div>
       </div>
 
     </main>
   </div>
 
-  <script type="module" src="./js/app.js?v=9"></script>
+  <!-- ── PROOF PHOTO MODAL ─────────────────────────────────── -->
+  <div id="proofModal" class="proof-overlay" style="display:none;">
+    <div class="proof-card">
+
+      <div class="proof-header">
+        <h2 class="proof-title">Proof of Completion</h2>
+        <p id="proofTaskName" class="proof-task-name"></p>
+      </div>
+
+      <!-- Live camera viewfinder -->
+      <div class="viewfinder-wrap">
+        <video id="cameraVideo" autoplay playsinline muted></video>
+        <div id="liveTimestamp" class="live-timestamp"></div>
+        <div class="viewfinder-corners"></div>
+      </div>
+
+      <!-- Progress -->
+      <div class="proof-progress">
+        <span id="progressLabel" class="progress-label">Take photo 1 of 3</span>
+        <div class="proof-dots">
+          <div class="proof-dot" id="dot0"></div>
+          <div class="proof-dot" id="dot1"></div>
+          <div class="proof-dot" id="dot2"></div>
+        </div>
+      </div>
+
+      <!-- Captured thumbnails -->
+      <div id="proofThumbs" class="proof-thumbs"></div>
+
+      <!-- Instruction -->
+      <p id="proofInstruction" class="proof-instruction">
+        Point camera at the area from a different angle for each photo.
+      </p>
+
+      <!-- Buttons -->
+      <button id="captureBtn" class="btn-capture">&#9679; Capture</button>
+      <button id="submitProofBtn" class="btn-submit-proof" style="display:none;">
+        &#10003; Submit &amp; Complete Task
+      </button>
+      <button id="cancelProofBtn" class="btn-cancel-proof">Cancel</button>
+
+      <div id="proofError" class="proof-error" style="display:none;"></div>
+    </div>
+  </div>
+
+  <script type="module" src="./js/app.js?v=10"></script>
 </body>
 </html>

@@ -517,3 +517,246 @@ select option { background: var(--surface); }
   border-top: 1px solid var(--border);
   margin: 20px 0;
 }
+
+/* ==============================
+   PROOF PHOTO MODAL
+================================ */
+.proof-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 100;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.proof-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 20px;
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: auto;
+}
+
+.proof-header { text-align: center; }
+
+.proof-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.proof-task-name {
+  color: var(--accent);
+  font-size: 13px;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* ── Viewfinder ── */
+.viewfinder-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.viewfinder-wrap video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.live-timestamp {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  padding: 6px 10px;
+  text-align: center;
+}
+
+.viewfinder-corners {
+  position: absolute;
+  inset: 8px;
+  border-radius: 8px;
+  border: 2px solid rgba(59,130,246,0.5);
+  pointer-events: none;
+}
+
+/* ── Progress ── */
+.proof-progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.progress-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.proof-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.proof-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--border);
+  border: 2px solid var(--border);
+  transition: background 0.3s, border-color 0.3s;
+}
+
+.proof-dot.filled {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ── Thumbnails ── */
+.proof-thumbs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.proof-thumb {
+  width: calc(33.33% - 7px);
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid var(--accent);
+}
+
+.proof-instruction {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ── Buttons ── */
+.btn-capture {
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  border: none;
+  border-radius: 50px;
+  padding: 15px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  letter-spacing: 0.5px;
+}
+
+.btn-capture:hover  { background: var(--accent-h); }
+.btn-capture:active { transform: scale(0.97); }
+
+.btn-submit-proof {
+  width: 100%;
+  background: var(--success);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  padding: 13px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-submit-proof:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-cancel-proof {
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  border-radius: 10px;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel-proof:hover { border-color: var(--danger); color: var(--danger); }
+
+.proof-error {
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.3);
+  color: #fca5a5;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ── Proof thumbs on task cards ── */
+.proof-thumb-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.proof-thumb-small {
+  width: 72px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.task-completed-at {
+  color: var(--success);
+  font-size: 11px;
+}
+
+.task-photo-count {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* ── Prove Done button ── */
+.btn-done {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-done:hover {
+  background: var(--accent);
+  color: #fff;
+}
