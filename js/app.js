@@ -4,7 +4,8 @@ window.addEventListener("error", (e) => {
   if (box) { box.textContent = "App error: " + (e.message || e.type); box.style.display = "block"; }
 });
 
-import { supabase } from "../config/supabase.js";
+import { supabase, SUPABASE_URL, SUPABASE_ANON } from "../config/supabase.js";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ── Hardwired super-admins ────────────────────────────────────────────────
 // These emails ALWAYS get admin access, regardless of the database.
@@ -25,6 +26,7 @@ let $email, $password, $regName, $regEmail, $regPassword;
 let $userEmail, $adminPanel, $userMgmtPanel;
 let $taskTitle, $taskNotes, $taskAssignee, $createTaskBtn;
 let $taskList, $userList;
+let $newUserName, $newUserEmail, $newUserPassword, $newUserRole, $addUserBtn, $addUserMsg;
 
 // ── Init ──────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", async () => {
@@ -52,8 +54,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   $taskNotes    = document.getElementById("taskNotes");
   $taskAssignee = document.getElementById("taskAssignee");
   $createTaskBtn = document.getElementById("createTaskBtn");
-  $taskList     = document.getElementById("taskList");
-  $userList     = document.getElementById("userList");
+  $taskList      = document.getElementById("taskList");
+  $userList      = document.getElementById("userList");
+  $newUserName   = document.getElementById("newUserName");
+  $newUserEmail  = document.getElementById("newUserEmail");
+  $newUserPassword = document.getElementById("newUserPassword");
+  $newUserRole   = document.getElementById("newUserRole");
+  $addUserBtn    = document.getElementById("addUserBtn");
+  $addUserMsg    = document.getElementById("addUserMsg");
 
   // Tab switching
   $tabSignIn.addEventListener("click", () => switchTab("signin"));
@@ -64,6 +72,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   $registerBtn.addEventListener("click", handleRegister);
   $logoutBtn.addEventListener("click", handleLogout);
   $createTaskBtn.addEventListener("click", handleCreateTask);
+  $addUserBtn.addEventListener("click", handleAddUser);
 
   // Enter key on sign-in fields
   $email.addEventListener("keydown",    (e) => e.key === "Enter" && handleLogin());
@@ -370,6 +379,55 @@ async function loadAssignees() {
   } catch (err) {
     console.warn("Assignees:", err.message);
   }
+}
+
+// ── Add user (admin creates worker directly) ──────────────────────────────
+async function handleAddUser() {
+  const name     = $newUserName.value.trim();
+  const email    = $newUserEmail.value.trim().toLowerCase();
+  const password = $newUserPassword.value;
+  const role     = $newUserRole.value;
+
+  setAddUserMsg("", "");
+
+  if (!name)           { setAddUserMsg("Enter the worker's full name.", "error"); return; }
+  if (!email)          { setAddUserMsg("Enter the worker's email.", "error"); return; }
+  if (password.length < 6) { setAddUserMsg("Password must be at least 6 characters.", "error"); return; }
+
+  setLoading($addUserBtn, true, "Adding…", "+ Add Worker");
+
+  try {
+    // Use a SEPARATE client so the admin's own session is never touched
+    const tempClient = createClient(SUPABASE_URL, SUPABASE_ANON);
+    const { data, error: signUpErr } = await tempClient.auth.signUp({ email, password });
+    if (signUpErr) throw signUpErr;
+
+    if (data.user) {
+      // Create profile for the new user
+      const { error: profileErr } = await supabase.from("profiles").upsert({
+        id:        data.user.id,
+        full_name: name,
+        role,
+      });
+      if (profileErr) throw profileErr;
+    }
+
+    setAddUserMsg(`✓ ${name} added successfully!`, "success");
+    $newUserName.value = $newUserEmail.value = $newUserPassword.value = "";
+    $newUserRole.value = "user";
+    await Promise.all([loadUserManagement(), loadAssignees()]);
+  } catch (err) {
+    setAddUserMsg(friendlyAuthError(err.message), "error");
+  }
+
+  setLoading($addUserBtn, false, "Adding…", "+ Add Worker");
+}
+
+function setAddUserMsg(msg, type) {
+  if (!msg) { $addUserMsg.style.display = "none"; return; }
+  $addUserMsg.textContent  = msg;
+  $addUserMsg.className    = "add-user-msg " + (type === "success" ? "add-user-success" : "add-user-error");
+  $addUserMsg.style.display = "block";
 }
 
 // ── User management ───────────────────────────────────────────────────────

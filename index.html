@@ -91,6 +91,26 @@
           <span class="panel-badge">Admin</span>
           User Management
         </h2>
+
+        <!-- Add user directly -->
+        <div class="add-user-form">
+          <h3 class="add-user-title">Add New Worker</h3>
+          <div class="add-user-fields">
+            <input id="newUserName"     type="text"     placeholder="Full name" />
+            <input id="newUserEmail"    type="email"    placeholder="Email address" />
+            <input id="newUserPassword" type="password" placeholder="Temporary password" />
+            <select id="newUserRole">
+              <option value="user">Worker (User)</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <button id="addUserBtn" class="btn-create">+ Add Worker</button>
+          <div id="addUserMsg" class="add-user-msg" style="display:none;"></div>
+        </div>
+
+        <div class="divider"></div>
+
+        <h3 class="add-user-title">Current Workers</h3>
         <div id="userList">
           <p class="empty-state">Loading users…</p>
         </div>
