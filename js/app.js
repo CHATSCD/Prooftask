@@ -4,7 +4,7 @@ window.addEventListener("error", (e) => {
   if (box) { box.textContent = "App error: " + (e.message || e.type); box.style.display = "block"; }
 });
 
-import { supabase, SUPABASE_URL, SUPABASE_ANON } from "../config/supabase.js";
+import { supabase, SUPABASE_URL, SUPABASE_ANON } from "../config/supabase.js?v=9";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ── Hardwired super-admins ────────────────────────────────────────────────
