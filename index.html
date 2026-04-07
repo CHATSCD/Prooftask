@@ -6,7 +6,7 @@
   <title>ProofTask</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./css/styles.css?v=11" />
+  <link rel="stylesheet" href="./css/styles.css?v=12" />
 </head>
 <body>
 
@@ -46,7 +46,6 @@
         ProofTask
       </div>
       <div class="nav-right">
-        <!-- Notification bell -->
         <button id="notifBell" class="notif-bell" title="Notifications">
           &#128276;
           <span id="notifBadge" class="notif-badge" style="display:none;">0</span>
@@ -56,7 +55,7 @@
       </div>
     </nav>
 
-    <!-- Notification panel (slide down) -->
+    <!-- Overdue notification panel -->
     <div id="notifPanel" class="notif-panel" style="display:none;">
       <div class="notif-panel-header">
         <span class="notif-panel-title">&#9888; Overdue Tasks</span>
@@ -67,31 +66,61 @@
 
     <main class="main-content">
 
-      <!-- ADMIN: CREATE TASK -->
+      <!-- ── ADMIN: ASSIGN TASK (from template) ── -->
       <div id="adminPanel" class="panel admin-panel" style="display:none;">
         <h2 class="panel-title">
           <span class="panel-badge">Admin</span>
-          Create Task
+          Assign Task
         </h2>
-        <div class="form-row">
-          <input id="taskTitle" type="text" placeholder="Task title" />
+
+        <!-- Tab bar -->
+        <div class="admin-tabs">
+          <button id="tabAssign"    class="admin-tab active">Assign Task</button>
+          <button id="tabTemplates" class="admin-tab">Task Library</button>
         </div>
-        <div class="form-row">
-          <textarea id="taskNotes" placeholder="Task notes (optional)" rows="3"></textarea>
+
+        <!-- ASSIGN form -->
+        <div id="assignForm">
+          <div class="form-row">
+            <label class="field-label">Select task from library</label>
+            <select id="templatePick">
+              <option value="">— choose a task —</option>
+            </select>
+          </div>
+          <div id="templatePreview" class="template-preview" style="display:none;"></div>
+          <div class="form-row">
+            <label class="field-label">Assign to worker</label>
+            <select id="taskAssignee">
+              <option value="">Unassigned</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="field-label">Due date &amp; time (optional)</label>
+            <input id="taskDueAt" type="datetime-local" />
+          </div>
+          <button id="assignTaskBtn" class="btn-create">&#8594; Assign Task</button>
         </div>
-        <div class="form-row">
-          <select id="taskAssignee">
-            <option value="">Assign to user (optional)</option>
-          </select>
+
+        <!-- TEMPLATE LIBRARY form -->
+        <div id="templateForm" style="display:none;">
+          <div class="form-row">
+            <label class="field-label">Task title</label>
+            <input id="tplTitle" type="text" placeholder="e.g. Clean deli slicer" />
+          </div>
+          <div class="form-row">
+            <label class="field-label">Instructions (optional)</label>
+            <textarea id="tplNotes" placeholder="Step-by-step instructions…" rows="3"></textarea>
+          </div>
+          <button id="saveTplBtn" class="btn-create">+ Save to Library</button>
+          <div id="tplMsg" style="display:none;" class="add-user-msg"></div>
+
+          <div class="divider"></div>
+          <h3 class="add-user-title">Saved Templates</h3>
+          <div id="templateList"><p class="empty-state">Loading…</p></div>
         </div>
-        <div class="form-row">
-          <label class="field-label">Due date &amp; time (optional)</label>
-          <input id="taskDueAt" type="datetime-local" />
-        </div>
-        <button id="createTaskBtn" class="btn-create">+ Create Task</button>
       </div>
 
-      <!-- ADMIN: USER MANAGEMENT -->
+      <!-- ── ADMIN: USER MANAGEMENT ── -->
       <div id="userMgmtPanel" class="panel admin-panel" style="display:none;">
         <h2 class="panel-title">
           <span class="panel-badge">Admin</span>
@@ -116,7 +145,7 @@
         <div id="userList"><p class="empty-state">Loading users…</p></div>
       </div>
 
-      <!-- TASK LIST -->
+      <!-- ── TASK LIST ── -->
       <div class="panel">
         <h2 class="panel-title">
           Tasks
@@ -150,13 +179,13 @@
       </div>
       <div id="proofThumbs" class="proof-thumbs"></div>
       <p id="proofInstruction" class="proof-instruction">Point camera at the task area from a different angle for each photo.</p>
-      <button id="captureBtn"    class="btn-capture">&#9679; Capture</button>
+      <button id="captureBtn"     class="btn-capture">&#9679; Capture</button>
       <button id="submitProofBtn" class="btn-submit-proof" style="display:none;">&#10003; Submit &amp; Complete Task</button>
       <button id="cancelProofBtn" class="btn-cancel-proof">Cancel</button>
       <div id="proofError" class="proof-error" style="display:none;"></div>
     </div>
   </div>
 
-  <script type="module" src="./js/app.js?v=11"></script>
+  <script type="module" src="./js/app.js?v=12"></script>
 </body>
 </html>
