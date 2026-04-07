@@ -5,15 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ProofTask</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap"
-    rel="stylesheet"
-  />
-  <link rel="stylesheet" href="./css/styles.css?v=10" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/styles.css?v=11" />
 </head>
 <body>
 
-  <!-- ── LOGIN / REGISTER SCREEN ───────────────────────────── -->
+  <!-- ── LOGIN / REGISTER ──────────────────────────────────── -->
   <div id="loginScreen">
     <div class="login-card">
       <div class="login-logo">
@@ -27,8 +24,8 @@
       <div id="loginError"   class="error-msg"   style="display:none;"></div>
       <div id="loginSuccess" class="success-msg" style="display:none;"></div>
       <div id="formSignIn">
-        <input id="email"    type="email"    placeholder="Email address"    autocomplete="email" />
-        <input id="password" type="password" placeholder="Password"         autocomplete="current-password" />
+        <input id="email"    type="email"    placeholder="Email address"   autocomplete="email" />
+        <input id="password" type="password" placeholder="Password"        autocomplete="current-password" />
         <button id="loginBtn">Sign In</button>
       </div>
       <div id="formSignUp" style="display:none;">
@@ -49,10 +46,24 @@
         ProofTask
       </div>
       <div class="nav-right">
+        <!-- Notification bell -->
+        <button id="notifBell" class="notif-bell" title="Notifications">
+          &#128276;
+          <span id="notifBadge" class="notif-badge" style="display:none;">0</span>
+        </button>
         <span id="userEmail" class="user-email"></span>
         <button id="logoutBtn" class="btn-logout">Sign Out</button>
       </div>
     </nav>
+
+    <!-- Notification panel (slide down) -->
+    <div id="notifPanel" class="notif-panel" style="display:none;">
+      <div class="notif-panel-header">
+        <span class="notif-panel-title">&#9888; Overdue Tasks</span>
+        <button id="notifClose" class="notif-close">&#10005;</button>
+      </div>
+      <div id="notifList" class="notif-list"></div>
+    </div>
 
     <main class="main-content">
 
@@ -72,6 +83,10 @@
           <select id="taskAssignee">
             <option value="">Assign to user (optional)</option>
           </select>
+        </div>
+        <div class="form-row">
+          <label class="field-label">Due date &amp; time (optional)</label>
+          <input id="taskDueAt" type="datetime-local" />
         </div>
         <button id="createTaskBtn" class="btn-create">+ Create Task</button>
       </div>
@@ -103,7 +118,10 @@
 
       <!-- TASK LIST -->
       <div class="panel">
-        <h2 class="panel-title">Tasks</h2>
+        <h2 class="panel-title">
+          Tasks
+          <span id="overdueCount" class="overdue-count-badge" style="display:none;"></span>
+        </h2>
         <div id="taskList"><p class="empty-state">Loading tasks…</p></div>
       </div>
 
@@ -113,20 +131,15 @@
   <!-- ── PROOF PHOTO MODAL ─────────────────────────────────── -->
   <div id="proofModal" class="proof-overlay" style="display:none;">
     <div class="proof-card">
-
       <div class="proof-header">
         <h2 class="proof-title">Proof of Completion</h2>
         <p id="proofTaskName" class="proof-task-name"></p>
       </div>
-
-      <!-- Live camera viewfinder -->
       <div class="viewfinder-wrap">
         <video id="cameraVideo" autoplay playsinline muted></video>
         <div id="liveTimestamp" class="live-timestamp"></div>
         <div class="viewfinder-corners"></div>
       </div>
-
-      <!-- Progress -->
       <div class="proof-progress">
         <span id="progressLabel" class="progress-label">Take photo 1 of 3</span>
         <div class="proof-dots">
@@ -135,26 +148,15 @@
           <div class="proof-dot" id="dot2"></div>
         </div>
       </div>
-
-      <!-- Captured thumbnails -->
       <div id="proofThumbs" class="proof-thumbs"></div>
-
-      <!-- Instruction -->
-      <p id="proofInstruction" class="proof-instruction">
-        Point camera at the area from a different angle for each photo.
-      </p>
-
-      <!-- Buttons -->
-      <button id="captureBtn" class="btn-capture">&#9679; Capture</button>
-      <button id="submitProofBtn" class="btn-submit-proof" style="display:none;">
-        &#10003; Submit &amp; Complete Task
-      </button>
+      <p id="proofInstruction" class="proof-instruction">Point camera at the task area from a different angle for each photo.</p>
+      <button id="captureBtn"    class="btn-capture">&#9679; Capture</button>
+      <button id="submitProofBtn" class="btn-submit-proof" style="display:none;">&#10003; Submit &amp; Complete Task</button>
       <button id="cancelProofBtn" class="btn-cancel-proof">Cancel</button>
-
       <div id="proofError" class="proof-error" style="display:none;"></div>
     </div>
   </div>
 
-  <script type="module" src="./js/app.js?v=10"></script>
+  <script type="module" src="./js/app.js?v=11"></script>
 </body>
 </html>
