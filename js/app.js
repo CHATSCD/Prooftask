@@ -1,121 +1,160 @@
-// ── top-level catch: if the module itself fails to load, show it ──────────
+// ── top-level catch: surface module-load failures visibly ─────────────────
 window.addEventListener("error", (e) => {
-  document.getElementById("loginError").textContent =
-    "App failed to load: " + (e.message || e.type);
-  document.getElementById("loginError").style.display = "block";
+  const box = document.getElementById("loginError");
+  if (box) { box.textContent = "App error: " + (e.message || e.type); box.style.display = "block"; }
 });
 
 import { supabase } from "../config/supabase.js";
+
+// ── Hardwired super-admins ────────────────────────────────────────────────
+// These emails ALWAYS get admin access, regardless of the database.
+// Add more emails here to grant permanent admin access.
+const SUPER_ADMINS = [
+  "shauncdubuisson@gmail.com",
+];
 
 // ── State ─────────────────────────────────────────────────────────────────
 let currentUser    = null;
 let currentProfile = null;
 
 // ── DOM refs ──────────────────────────────────────────────────────────────
-let $loginScreen, $app, $loginError, $loginBtn, $logoutBtn;
-let $email, $password, $userEmail;
-let $adminPanel, $taskTitle, $taskNotes, $taskAssignee, $createTaskBtn;
-let $taskList;
+let $loginScreen, $app, $loginError, $loginSuccess;
+let $tabSignIn, $tabSignUp, $formSignIn, $formSignUp;
+let $loginBtn, $registerBtn, $logoutBtn;
+let $email, $password, $regName, $regEmail, $regPassword;
+let $userEmail, $adminPanel, $userMgmtPanel;
+let $taskTitle, $taskNotes, $taskAssignee, $createTaskBtn;
+let $taskList, $userList;
 
 // ── Init ──────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", async () => {
   // Cache DOM
-  $loginScreen   = document.getElementById("loginScreen");
-  $app           = document.getElementById("app");
-  $loginError    = document.getElementById("loginError");
-  $loginBtn      = document.getElementById("loginBtn");
-  $logoutBtn     = document.getElementById("logoutBtn");
-  $email         = document.getElementById("email");
-  $password      = document.getElementById("password");
-  $userEmail     = document.getElementById("userEmail");
-  $adminPanel    = document.getElementById("adminPanel");
-  $taskTitle     = document.getElementById("taskTitle");
-  $taskNotes     = document.getElementById("taskNotes");
-  $taskAssignee  = document.getElementById("taskAssignee");
+  $loginScreen  = document.getElementById("loginScreen");
+  $app          = document.getElementById("app");
+  $loginError   = document.getElementById("loginError");
+  $loginSuccess = document.getElementById("loginSuccess");
+  $tabSignIn    = document.getElementById("tabSignIn");
+  $tabSignUp    = document.getElementById("tabSignUp");
+  $formSignIn   = document.getElementById("formSignIn");
+  $formSignUp   = document.getElementById("formSignUp");
+  $loginBtn     = document.getElementById("loginBtn");
+  $registerBtn  = document.getElementById("registerBtn");
+  $logoutBtn    = document.getElementById("logoutBtn");
+  $email        = document.getElementById("email");
+  $password     = document.getElementById("password");
+  $regName      = document.getElementById("regName");
+  $regEmail     = document.getElementById("regEmail");
+  $regPassword  = document.getElementById("regPassword");
+  $userEmail    = document.getElementById("userEmail");
+  $adminPanel   = document.getElementById("adminPanel");
+  $userMgmtPanel = document.getElementById("userMgmtPanel");
+  $taskTitle    = document.getElementById("taskTitle");
+  $taskNotes    = document.getElementById("taskNotes");
+  $taskAssignee = document.getElementById("taskAssignee");
   $createTaskBtn = document.getElementById("createTaskBtn");
-  $taskList      = document.getElementById("taskList");
+  $taskList     = document.getElementById("taskList");
+  $userList     = document.getElementById("userList");
 
-  // Wire all events here — zero inline onclick attributes
+  // Tab switching
+  $tabSignIn.addEventListener("click", () => switchTab("signin"));
+  $tabSignUp.addEventListener("click", () => switchTab("signup"));
+
+  // Button events
   $loginBtn.addEventListener("click", handleLogin);
+  $registerBtn.addEventListener("click", handleRegister);
   $logoutBtn.addEventListener("click", handleLogout);
   $createTaskBtn.addEventListener("click", handleCreateTask);
+
+  // Enter key on sign-in fields
   $email.addEventListener("keydown",    (e) => e.key === "Enter" && handleLogin());
   $password.addEventListener("keydown", (e) => e.key === "Enter" && handleLogin());
 
-  // Restore existing session
+  // Restore session
   try {
-    const { data, error } = await supabase.auth.getSession();
-    if (error) throw error;
-    if (data?.session) {
-      await bootUser(data.session.user);
-    }
+    const { data } = await supabase.auth.getSession();
+    if (data?.session) await bootUser(data.session.user);
   } catch (err) {
-    // Session check failing doesn't block login — just log it
     console.warn("Session restore failed:", err.message);
   }
 });
+
+// ── Tab switching ─────────────────────────────────────────────────────────
+function switchTab(tab) {
+  hideMessages();
+  if (tab === "signin") {
+    $tabSignIn.classList.add("active");
+    $tabSignUp.classList.remove("active");
+    $formSignIn.style.display = "block";
+    $formSignUp.style.display = "none";
+  } else {
+    $tabSignUp.classList.add("active");
+    $tabSignIn.classList.remove("active");
+    $formSignUp.style.display = "block";
+    $formSignIn.style.display = "none";
+  }
+}
 
 // ── Login ─────────────────────────────────────────────────────────────────
 async function handleLogin() {
   const email    = $email.value.trim().toLowerCase();
   const password = $password.value;
+  hideMessages();
 
-  hideError();
+  if (!email || !password) { showError("Please enter your email and password."); return; }
 
-  if (!email || !password) {
-    showError("Please enter your email and password.");
-    return;
-  }
-
-  setLoginLoading(true);
-
-  let data, error;
+  setLoading($loginBtn, true, "Signing in…", "Sign In");
 
   try {
-    ({ data, error } = await supabase.auth.signInWithPassword({ email, password }));
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    await bootUser(data.user);
   } catch (err) {
-    setLoginLoading(false);
-    showError("Network error — could not reach the server. Check your connection.");
-    console.error("signInWithPassword threw:", err);
-    return;
+    showError(friendlyAuthError(err.message));
   }
 
-  setLoginLoading(false);
+  setLoading($loginBtn, false, "Signing in…", "Sign In");
+}
 
-  if (error) {
-    // Translate common Supabase error messages into plain English
-    const msg = friendlyAuthError(error.message);
-    showError(msg);
-    return;
+// ── Register ──────────────────────────────────────────────────────────────
+async function handleRegister() {
+  const name     = $regName.value.trim();
+  const email    = $regEmail.value.trim().toLowerCase();
+  const password = $regPassword.value;
+  hideMessages();
+
+  if (!name)                        { showError("Please enter your full name."); return; }
+  if (!email)                       { showError("Please enter your email."); return; }
+  if (password.length < 6)          { showError("Password must be at least 6 characters."); return; }
+
+  setLoading($registerBtn, true, "Creating account…", "Create Account");
+
+  try {
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) throw error;
+
+    // Create a profile row for this user
+    if (data.user) {
+      await supabase.from("profiles").upsert({
+        id:        data.user.id,
+        full_name: name,
+        role:      "user",
+      });
+    }
+
+    showSuccess("Account created! Check your email to confirm, then sign in.");
+    $regName.value = $regEmail.value = $regPassword.value = "";
+    switchTab("signin");
+  } catch (err) {
+    showError(friendlyAuthError(err.message));
   }
 
-  await bootUser(data.user);
-}
-
-function friendlyAuthError(raw) {
-  if (!raw) return "Login failed. Please try again.";
-  const r = raw.toLowerCase();
-  if (r.includes("invalid login") || r.includes("invalid credentials"))
-    return "Incorrect email or password.";
-  if (r.includes("email not confirmed"))
-    return "Please confirm your email address before signing in.";
-  if (r.includes("too many requests"))
-    return "Too many attempts. Please wait a moment and try again.";
-  if (r.includes("network") || r.includes("fetch"))
-    return "Network error — check your internet connection.";
-  return raw; // fall back to raw message
-}
-
-function setLoginLoading(loading) {
-  $loginBtn.disabled    = loading;
-  $loginBtn.textContent = loading ? "Signing in…" : "Sign In";
+  setLoading($registerBtn, false, "Creating account…", "Create Account");
 }
 
 // ── Logout ────────────────────────────────────────────────────────────────
 async function handleLogout() {
   await supabase.auth.signOut().catch(() => {});
-  currentUser    = null;
-  currentProfile = null;
+  currentUser = currentProfile = null;
   showLoginScreen();
 }
 
@@ -123,8 +162,11 @@ async function handleLogout() {
 async function bootUser(user) {
   currentUser = user;
 
-  // Try to fetch profile — but don't block login if table doesn't exist yet
-  let profile = { role: "user", full_name: null };
+  // Check if this is a hardwired super-admin
+  const isSuperAdmin = SUPER_ADMINS.includes(user.email?.toLowerCase());
+
+  // Fetch profile from DB
+  let profile = { role: isSuperAdmin ? "admin" : "user", full_name: null };
 
   try {
     const { data, error } = await supabase
@@ -133,32 +175,34 @@ async function bootUser(user) {
       .eq("id", user.id)
       .single();
 
-    if (error) {
-      // PGRST116 = no rows found; 42P01 = table doesn't exist
-      if (error.code === "PGRST116") {
-        console.warn("No profile row found for this user — using defaults.");
-      } else if (error.message?.includes("does not exist")) {
-        console.warn("profiles table not found — using defaults.");
-      } else {
-        console.error("Profile fetch error:", error.code, error.message);
-      }
-      // Proceed with defaults — do NOT block login
-    } else {
-      profile = data;
+    if (error && error.code !== "PGRST116") {
+      console.warn("Profile fetch:", error.message);
+    } else if (data) {
+      // Super-admin overrides DB role
+      profile = { ...data, role: isSuperAdmin ? "admin" : data.role };
     }
   } catch (err) {
     console.warn("Profile fetch threw:", err.message);
   }
 
-  currentProfile = profile;
+  // If super-admin has no profile row yet, create one automatically
+  if (isSuperAdmin) {
+    await supabase.from("profiles").upsert({
+      id:        user.id,
+      full_name: profile.full_name || user.email,
+      role:      "admin",
+    });
+  }
 
+  currentProfile = profile;
   showAppScreen(profile.full_name || user.email);
 
-  if (profile.role === "admin") {
-    $adminPanel.style.display = "block";
-    await loadAssignees();
-  } else {
-    $adminPanel.style.display = "none";
+  const isAdmin = profile.role === "admin";
+  $adminPanel.style.display    = isAdmin ? "block" : "none";
+  $userMgmtPanel.style.display = isAdmin ? "block" : "none";
+
+  if (isAdmin) {
+    await Promise.all([loadAssignees(), loadUserManagement()]);
   }
 
   await loadTasks();
@@ -168,9 +212,8 @@ async function bootUser(user) {
 function showLoginScreen() {
   $app.style.display         = "none";
   $loginScreen.style.display = "flex";
-  $email.value               = "";
-  $password.value            = "";
-  hideError();
+  $email.value = $password.value = "";
+  hideMessages();
 }
 
 function showAppScreen(displayName) {
@@ -179,15 +222,37 @@ function showAppScreen(displayName) {
   $userEmail.textContent     = displayName;
 }
 
-// ── Error helpers ─────────────────────────────────────────────────────────
+// ── Message helpers ───────────────────────────────────────────────────────
 function showError(msg) {
   $loginError.textContent   = msg;
   $loginError.style.display = "block";
+  $loginSuccess.style.display = "none";
 }
 
-function hideError() {
-  $loginError.style.display = "none";
-  $loginError.textContent   = "";
+function showSuccess(msg) {
+  $loginSuccess.textContent   = msg;
+  $loginSuccess.style.display = "block";
+  $loginError.style.display   = "none";
+}
+
+function hideMessages() {
+  $loginError.style.display   = "none";
+  $loginSuccess.style.display = "none";
+}
+
+function setLoading(btn, loading, loadingText, defaultText) {
+  btn.disabled    = loading;
+  btn.textContent = loading ? loadingText : defaultText;
+}
+
+function friendlyAuthError(raw) {
+  if (!raw) return "Something went wrong. Please try again.";
+  const r = raw.toLowerCase();
+  if (r.includes("invalid login") || r.includes("invalid credentials")) return "Incorrect email or password.";
+  if (r.includes("email not confirmed")) return "Please confirm your email before signing in.";
+  if (r.includes("too many requests"))   return "Too many attempts — wait a moment and try again.";
+  if (r.includes("already registered"))  return "An account with this email already exists.";
+  return raw;
 }
 
 // ── Load tasks ────────────────────────────────────────────────────────────
@@ -195,43 +260,31 @@ async function loadTasks() {
   $taskList.innerHTML = `<p class="empty-state">Loading…</p>`;
 
   try {
-    // Fetch tasks and profiles separately to avoid FK join issues
-    const [{ data: tasks, error: tasksErr }, { data: profiles, error: profilesErr }] =
-      await Promise.all([
-        supabase.from("tasks").select("*").order("created_at", { ascending: false }),
-        supabase.from("profiles").select("id, full_name"),
-      ]);
+    const [{ data: tasks, error: tErr }, { data: profiles }] = await Promise.all([
+      supabase.from("tasks").select("*").order("created_at", { ascending: false }),
+      supabase.from("profiles").select("id, full_name"),
+    ]);
 
-    if (tasksErr) throw tasksErr;
+    if (tErr) throw tErr;
 
-    // Build a quick id → name lookup map
     const nameById = {};
-    if (profiles && !profilesErr) {
-      profiles.forEach((p) => { nameById[p.id] = p.full_name; });
-    }
+    (profiles || []).forEach((p) => { nameById[p.id] = p.full_name; });
 
-    // Attach assignee name to each task
-    const enriched = (tasks || []).map((t) => ({
-      ...t,
-      assigneeName: nameById[t.assigned_to] || null,
-    }));
-
-    renderTasks(enriched);
+    renderTasks((tasks || []).map((t) => ({ ...t, assigneeName: nameById[t.assigned_to] || null })));
   } catch (err) {
-    console.error("Tasks fetch failed:", err.message);
+    console.error("Tasks:", err.message);
     $taskList.innerHTML = `<p class="empty-state">Could not load tasks: ${escapeHtml(err.message)}</p>`;
   }
 }
 
 // ── Render tasks ──────────────────────────────────────────────────────────
 function renderTasks(tasks) {
-  if (!tasks || tasks.length === 0) {
+  if (!tasks.length) {
     $taskList.innerHTML = `<p class="empty-state">No tasks yet.</p>`;
     return;
   }
 
   $taskList.innerHTML = "";
-
   tasks.forEach((task) => {
     const isDone      = task.status === "done";
     const assignee    = task.assigneeName || "Unassigned";
@@ -255,7 +308,6 @@ function renderTasks(tasks) {
     if (!isDone) {
       card.querySelector(".btn-done").addEventListener("click", () => handleMarkDone(task.id));
     }
-
     $taskList.appendChild(card);
   });
 }
@@ -266,13 +318,9 @@ async function handleCreateTask() {
   const notes    = $taskNotes.value.trim();
   const assignee = $taskAssignee.value || null;
 
-  if (!title) {
-    alert("Task title is required.");
-    return;
-  }
+  if (!title) { alert("Task title is required."); return; }
 
-  $createTaskBtn.disabled    = true;
-  $createTaskBtn.textContent = "Creating…";
+  setLoading($createTaskBtn, true, "Creating…", "+ Create Task");
 
   try {
     const { error } = await supabase.from("tasks").insert({
@@ -282,29 +330,22 @@ async function handleCreateTask() {
       status:      "pending",
       created_by:  currentUser.id,
     });
-
     if (error) throw error;
 
-    $taskTitle.value    = "";
-    $taskNotes.value    = "";
+    $taskTitle.value = $taskNotes.value = "";
     $taskAssignee.value = "";
     await loadTasks();
   } catch (err) {
     alert("Error creating task: " + err.message);
   }
 
-  $createTaskBtn.disabled    = false;
-  $createTaskBtn.textContent = "+ Create Task";
+  setLoading($createTaskBtn, false, "Creating…", "+ Create Task");
 }
 
 // ── Mark done ─────────────────────────────────────────────────────────────
 async function handleMarkDone(taskId) {
   try {
-    const { error } = await supabase
-      .from("tasks")
-      .update({ status: "done" })
-      .eq("id", taskId);
-
+    const { error } = await supabase.from("tasks").update({ status: "done" }).eq("id", taskId);
     if (error) throw error;
     await loadTasks();
   } catch (err) {
@@ -312,25 +353,82 @@ async function handleMarkDone(taskId) {
   }
 }
 
-// ── Load assignees ────────────────────────────────────────────────────────
+// ── Load assignees dropdown ───────────────────────────────────────────────
 async function loadAssignees() {
   try {
     const { data: users, error } = await supabase
-      .from("profiles")
-      .select("id, full_name")
-      .order("full_name");
-
+      .from("profiles").select("id, full_name").order("full_name");
     if (error) throw error;
 
     $taskAssignee.innerHTML = `<option value="">Assign to user (optional)</option>`;
-    users.forEach((u) => {
-      const opt       = document.createElement("option");
+    (users || []).forEach((u) => {
+      const opt = document.createElement("option");
       opt.value       = u.id;
       opt.textContent = u.full_name || u.id;
       $taskAssignee.appendChild(opt);
     });
   } catch (err) {
-    console.warn("Could not load assignees:", err.message);
+    console.warn("Assignees:", err.message);
+  }
+}
+
+// ── User management ───────────────────────────────────────────────────────
+async function loadUserManagement() {
+  $userList.innerHTML = `<p class="empty-state">Loading users…</p>`;
+
+  try {
+    const { data: users, error } = await supabase
+      .from("profiles").select("id, full_name, role").order("full_name");
+    if (error) throw error;
+
+    if (!users || users.length === 0) {
+      $userList.innerHTML = `<p class="empty-state">No users yet.</p>`;
+      return;
+    }
+
+    $userList.innerHTML = "";
+    users.forEach((u) => renderUserRow(u));
+  } catch (err) {
+    $userList.innerHTML = `<p class="empty-state">Could not load users: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function renderUserRow(u) {
+  const isAdmin  = u.role === "admin";
+  const isSelf   = u.id === currentUser.id;
+
+  const row = document.createElement("div");
+  row.className  = "user-row";
+  row.dataset.id = u.id;
+  row.innerHTML  = `
+    <div class="user-row-info">
+      <span class="user-row-name">${escapeHtml(u.full_name || "—")}</span>
+      <span class="user-role-badge ${isAdmin ? "role-admin" : "role-user"}">
+        ${isAdmin ? "Admin" : "User"}
+      </span>
+    </div>
+    <button class="btn-role-toggle" data-uid="${u.id}" data-role="${u.role}" ${isSelf ? "disabled title='Cannot change your own role'" : ""}>
+      ${isAdmin ? "Demote to User" : "Promote to Admin"}
+    </button>
+  `;
+
+  if (!isSelf) {
+    row.querySelector(".btn-role-toggle").addEventListener("click", () =>
+      handleSetRole(u.id, isAdmin ? "user" : "admin")
+    );
+  }
+
+  $userList.appendChild(row);
+}
+
+async function handleSetRole(userId, newRole) {
+  try {
+    const { error } = await supabase
+      .from("profiles").update({ role: newRole }).eq("id", userId);
+    if (error) throw error;
+    await Promise.all([loadUserManagement(), loadAssignees()]);
+  } catch (err) {
+    alert("Could not update role: " + err.message);
   }
 }
 

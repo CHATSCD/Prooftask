@@ -88,10 +88,55 @@ body {
   margin-bottom: 6px;
 }
 
+/* ── Auth tabs ── */
+.auth-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.auth-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.auth-tab.active {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+#formSignIn, #formSignUp {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 .error-msg {
   background: rgba(239,68,68,0.1);
   border: 1px solid rgba(239,68,68,0.3);
   color: #fca5a5;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+.success-msg {
+  background: rgba(34,197,94,0.1);
+  border: 1px solid rgba(34,197,94,0.3);
+  color: #4ade80;
   border-radius: 8px;
   padding: 10px 14px;
   font-size: 13px;
@@ -122,7 +167,7 @@ textarea { resize: vertical; }
 
 select option { background: var(--surface); }
 
-#loginBtn {
+#loginBtn, #registerBtn {
   width: 100%;
   background: var(--accent);
   color: white;
@@ -134,12 +179,11 @@ select option { background: var(--surface); }
   padding: 12px;
   cursor: pointer;
   transition: background 0.2s, transform 0.1s;
-  margin-top: 4px;
 }
 
-#loginBtn:hover  { background: var(--accent-h); }
-#loginBtn:active { transform: scale(0.98); }
-#loginBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+#loginBtn:hover,    #registerBtn:hover    { background: var(--accent-h); }
+#loginBtn:active,   #registerBtn:active   { transform: scale(0.98); }
+#loginBtn:disabled, #registerBtn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* ==============================
    NAVBAR
@@ -354,4 +398,78 @@ select option { background: var(--surface); }
   text-align: center;
   padding: 32px 0;
   font-size: 14px;
+}
+
+/* ==============================
+   USER MANAGEMENT ROWS
+================================ */
+.user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.user-row:last-child { border-bottom: none; }
+
+.user-row-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.user-row-name {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-role-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.role-admin {
+  background: rgba(59,130,246,0.15);
+  color: var(--accent);
+  border: 1px solid rgba(59,130,246,0.3);
+}
+
+.role-user {
+  background: rgba(100,116,139,0.15);
+  color: var(--muted);
+  border: 1px solid rgba(100,116,139,0.3);
+}
+
+.btn-role-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+  font-family: 'DM Sans', sans-serif;
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.btn-role-toggle:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn-role-toggle:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
